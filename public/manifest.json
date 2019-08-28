@@ -2,8 +2,19 @@
   "name": "My Extension",
   "version": "1.0",
   "manifest_version": 2,
-  "browser_action": {
-    "default_popup": "index.html"
+  "browser_action": {},
+  "background": {
+    "scripts": ["app/background.js"]
   },
+  "permissions": [
+    "tab",
+    "activeTab",
+    "<all_urls>"
+  ],
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "css": ["/static/css/app.css", "/static/css/content.css"],
+    "js": ["/static/js/content.js"]
+  }],
   "content_security_policy": "script-src 'self' 'sha256-4UGBFMLlhlHkcA5CSAVLkQYi4/dDZhtnytl2UfxXC90='; object-src 'self'"
 }
