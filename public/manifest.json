@@ -4,17 +4,44 @@
   "manifest_version": 2,
   "browser_action": {},
   "background": {
-    "scripts": ["app/background.js"]
+    "scripts": ["app/background.js"],
+    "persistent": true
+  },
+  "commands": {
+    "highlight_text": {
+      "suggested_key": {
+        "default": "Ctrl+H",
+        "windows": "Ctrl+H",
+        "mac": "Command+H",
+        "chromeos": "Ctrl+H",
+        "linux": "Ctrl+H"
+      },
+      "description": "Highlight Text"
+    },
+    "take_notes": {
+      "suggested_key": {
+        "default": "Ctrl+M",
+        "windows": "Ctrl+M",
+        "mac": "Command+M",
+        "chromeos": "Ctrl+M",
+        "linux": "Ctrl+M"
+      },
+      "description": "Take Notes"
+    }
   },
   "permissions": [
-    "tab",
+    "tabs",
     "activeTab",
+    "unlimitedStorage",
+    "storage",
     "<all_urls>"
   ],
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "css": ["/static/css/app.css", "/static/css/content.css"],
-    "js": ["/static/js/content.js"]
-  }],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "css": ["/static/css/app.css", "/static/css/content.css"],
+      "js": ["/static/js/content.js"]
+    }
+  ],
   "content_security_policy": "script-src 'self' 'sha256-4UGBFMLlhlHkcA5CSAVLkQYi4/dDZhtnytl2UfxXC90='; object-src 'self'"
 }
