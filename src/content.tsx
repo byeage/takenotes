@@ -3,21 +3,72 @@ import ReactDOM from 'react-dom';
 import './content.scss';
 import { any } from 'prop-types';
 import { request } from 'http';
-import { Message } from './customerType'
+import { Message, Record, NoteMessage } from './customerType'
 import MessageComponent from './MessageComponent'
+// @ts-ignore
+import unique from 'unique-selector';
 declare var chrome: any;
 let addedEvent = false
 
 const APPID = 'bngjmejlpedjfeolhbjmeippdpaldlaf'
+const noteClass = 'note-for-chrome-extension-by-byeage'
+const regex = /note-for-chrome-extension-by-byeage/g;
+const options = {
+  // Array of selector types based on which the unique selector will generate
+  selectorTypes: ['ID', 'Class', 'Tag', 'NthChild']
+}
+let port: any = null
+port = chrome.runtime.connect({ name: "takenotes" });
 
 
+
+function checkoutParentAlreadyWrap(el: any): any {
+  if (el.nodeType === 1 && el.className.match(regex)) {
+    return true
+  } else {
+    if (el.parentNode) {
+      return checkoutParentAlreadyWrap(el.parentNode)
+    } else {
+      return false
+    }
+  }
+}
+
+
+
+function findCommmonAncestorContainer () {
+  let range = document.createRange()
+  let notes = document.querySelectorAll(`.${noteClass}`)
+  let len = notes.length - 1
+  range.setStart(notes[0], 0)
+  range.setEnd(notes[len], 0)
+
+  let parent:any = range.commonAncestorContainer
+  if (parent.className.match(regex)) {
+    return parent.parentNode
+  } else {
+    return parent
+  }
+}
+
+
+
+function setRecord (e: Record):void {
+  let doc = document.querySelector(e.hook)
+  if (doc) {
+    doc.innerHTML = e.content
+  }
+    
+}
 
 
 
 const Main: React.FC = () => {
-  let port: any = null
+
   const [fold, toggleFold] = useState(false)
   const [comment, writeComment] = useState('')
+
+
 
 
   function deleteNote(message: Message) {
@@ -59,16 +110,27 @@ const Main: React.FC = () => {
   const [notes, setNotes] = useState<Array<Message>>([])
   useEffect(() => {
     if (!addedEvent) {
-      port = chrome.runtime.connect({ name: "takenotes" });
+      
       port.postMessage({
         message: {
           type: 'get_notes',
           data: null
         }
       });
+
+
+      port.postMessage({
+        message: {
+          type: 'get_record',
+          data: {
+            uri: window.location.href
+          }
+        }
+      })
+      
       port.onMessage.addListener((request: any) => {
         let message = request.message
-        console.log(message)
+
         switch (message.type) {
           case "toggle":
             toggle();
@@ -76,16 +138,19 @@ const Main: React.FC = () => {
           case "get_notes":
             setNotes(message.data)
             break;
+          case "get_record":
+            setRecord(message.data)
+            break;
           case "highlight_text":
             let note = doHighLight();
-            if (note.content) {
+            if (note.message.content) {
               port.postMessage({
                 message: {
                   type: 'take_notes',
                   data: note
                 }
               })
-              setNotes(notes => ([note, ...notes]))
+              setNotes(notes => ([note.message, ...notes]))
             }
             break;
           default:
@@ -142,34 +207,55 @@ function highLight(nodeList: Array<any>, r: Range) {
     if (n.nodeType === 3) {
       if (r.intersectsNode(n)) {
         if (n === r.startContainer || n === r.endContainer) {
-          let wrapper = document.createElement("span")
-          wrapper.setAttribute("class", "note-for-chrome-extension-by-byeage")
-          let range = document.createRange()
-          let s = n === r.startContainer ? r.startOffset : 0
-          let e = n === r.endContainer ? r.endOffset : (n.nodeValue ? n.nodeValue.length : 0)
-          range.setStart(n, s)
-          range.setEnd(n, e)
-          range.surroundContents(wrapper)
-          range.detach()
-          console.log(n)
-          console.log(createXPathFromElement(n.parentNode))
-          if (window.getSelection && window.getSelection()) {
-            let s = window.getSelection()
-            if (s) {
-              s.removeAllRanges()
+
+          if (checkoutParentAlreadyWrap(n.parentNode)) {
+            // pass
+          } else {
+            let wrapper = document.createElement("span")
+            wrapper.setAttribute("class", noteClass)
+            let range = document.createRange()
+            let s = n === r.startContainer ? r.startOffset : 0
+            let e = n === r.endContainer ? r.endOffset : (n.nodeValue ? n.nodeValue.length : 0)
+            range.setStart(n, s)
+            range.setEnd(n, e)
+            range.surroundContents(wrapper)
+            range.detach()
+            // console.log(n)
+            // console.log(createXPathFromElement(n.parentNode))
+            // let css = unique(n.parentNode, options)
+            // console.log('xxxxxxxxx')
+            // console.log(n.parentNode, n.parentNode.className)
+            // console.log(css)
+            if (window.getSelection && window.getSelection()) {
+              let s = window.getSelection()
+              if (s) {
+                s.removeAllRanges()
+              }
             }
           }
+
         } else {
-          if (n.parentNode && n.parentNode.className.match("/note-for-chrome-extension-by-byeage/g")) {
+
+          if (n.parentNode && n.parentNode.className.match(regex)) {
             return
           }
-          let wrapper = document.createElement("span")
-          wrapper.setAttribute("class", "note-for-chrome-extension-by-byeage")
-          let range = document.createRange()
-          range.selectNode(n)
-          range.surroundContents(wrapper)
-          range.detach()
-          console.log(createXPathFromElement(n.parentNode))
+          if (checkoutParentAlreadyWrap(n.parentNode)) {
+            // pass
+          } else {
+            let wrapper = document.createElement("span")
+            wrapper.setAttribute("class", noteClass)
+            let range = document.createRange()
+            range.selectNode(n)
+            range.surroundContents(wrapper)
+            range.detach()
+          }
+
+
+          // console.log(createXPathFromElement(n.parentNode))
+          // let css = unique(n.parentNode, options)
+          // console.log('xxxxxxxxx')
+          // console.log(n.parentNode, n.parentNode.className)
+          // console.log(css)
         }
       }
 
@@ -177,7 +263,6 @@ function highLight(nodeList: Array<any>, r: Range) {
       // console.log(r.startOffset, r.endOffset)
       if (n.childNodes.length > 0) {
         let nodeList = Array.from(n.childNodes)
-        console.log(nodeList)
         highLight(nodeList, r)
       }
 
@@ -190,26 +275,41 @@ function highLight(nodeList: Array<any>, r: Range) {
 /**
  * 高亮标注
  */
-function doHighLight(): Message {
+function doHighLight(): NoteMessage {
   let s = window.getSelection()
   let str = ''
   if (s && s.toString().length) {
     str = s.toString()
     let r = s.getRangeAt(0)
     if (r.commonAncestorContainer.nodeType === 3) {
-      let wrapper = document.createElement("span")
-      wrapper.setAttribute("class", "note-for-chrome-extension-by-byeage")
-      let range = document.createRange()
-      // console.log(r.startOffset, r.endOffset)
-      range.setStart(r.startContainer, r.startOffset)
-      range.setEnd(r.endContainer, r.endOffset)
-      range.surroundContents(wrapper)
-      // console.log(r)
-      // console.log(createXPathFromElement(r.commonAncestorContainer.parentNode))
+
+      if (checkoutParentAlreadyWrap(r.commonAncestorContainer)) {
+        //pass
+      } else {
+        let wrapper = document.createElement("span")
+        wrapper.setAttribute("class", noteClass)
+        let range = document.createRange()
+        // console.log(r.startOffset, r.endOffset)
+        range.setStart(r.startContainer, r.startOffset)
+        range.setEnd(r.endContainer, r.endOffset)
+        range.surroundContents(wrapper)
+      }
+
+
     }
     let nodeList = Array.from(r.commonAncestorContainer.childNodes)
     highLight(nodeList, r)
   }
+  let container = findCommmonAncestorContainer()
+  let containerHTML = container.innerHTML
+  let hook = unique(container, options)
+  let record : Record= {
+    content : containerHTML,
+    hook: hook,
+    uri: window.location.href
+  }
+  console.log('hook:', hook)
+  console.log('html:', containerHTML)
   let message: Message = {
     content: str,
     createAt: (new Date()).toString(),
@@ -219,7 +319,13 @@ function doHighLight(): Message {
     site: window.location.hostname,
     comment: ''
   }
-  return message
+
+  
+
+  return {
+    message,
+    record
+  }
 }
 
 

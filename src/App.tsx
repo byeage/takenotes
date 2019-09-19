@@ -1,6 +1,8 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.scss';
+// @ts-ignore
+import unique from 'unique-selector';
 
 const App: React.FC = () => {
 
