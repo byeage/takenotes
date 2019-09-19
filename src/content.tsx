@@ -54,10 +54,13 @@ function findCommmonAncestorContainer () {
 
 
 function setRecord (e: Record):void {
-  let doc = document.querySelector(e.hook)
-  if (doc) {
-    doc.innerHTML = e.content
+  if (e && e.hook) {
+    let doc = document.querySelector(e.hook)
+    if (doc) {
+      doc.innerHTML = e.content
+    }
   }
+
     
 }
 
