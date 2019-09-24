@@ -1,65 +1,89 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.scss';
+import React from "react";
+import moment from "moment";
+import logo from "./logo.svg";
+import "./App.scss";
+import { addMessage, getAllMessage, putRecord, getRecord } from "./dbHandler";
+import { Message, Record } from "./db";
 // @ts-ignore
-import unique from 'unique-selector';
+import unique from "unique-selector";
 
 const App: React.FC = () => {
+  const [messages, doAddMessage] = React.useState<Array<Message>>([]);
+  
 
-  function doHighLight() {
+  const add = async () => {
+    const message: Message = {
+      uri: window.location.href,
+      site: window.location.host,
+      createAt: moment().format("YYYY-MM-DD HH:mm"),
+      timestamp: Date.now(),
+      content: "xxxx" + moment().format("YYYY-MM-DD HH:mm:ss"),
+      title: document.title,
+      markType: "background",
+      markColor: "#f00",
+      comment: ""
+    };
 
-    let s = window.getSelection()
-    if (s && s.toString().length) {
-      let r = s.getRangeAt(0)
-      if (r.commonAncestorContainer.nodeType === 3) {
-        let wrapper = document.createElement("span")
-        wrapper.setAttribute("class", "maker")
-        let range = document.createRange()
-        console.log(r.startOffset, r.endOffset)
-        range.setStart(r.startContainer, r.startOffset)
-        range.setEnd(r.endContainer, r.endOffset)
-        range.surroundContents(wrapper)
-
+    let res = await addMessage(message);
+    console.log("res,", res);
+    const m = {
+      id: res,
+      ...message
+    };
+    doAddMessage(
+      (preState: Array<Message>): Array<Message> => {
+        return [m, ...preState];
       }
-      let nodeList = Array.from(r.commonAncestorContainer.childNodes)
+    );
+  };
+  
+  const record  = async () => {
+    const record: Record = {
+      hook: 'body',
+      content: 'xxxxx',
+      uri: window.location.href
     }
+    putRecord(record)
+      .then(res => {
+        console.log(res)
+      })
   }
+  const params = {
+    page: 2,
+    limit: 10
+  };
+  // init
+  React.useEffect(() => {
+    getAllMessage(params.page, params.limit).then(res => {
+      console.log(res)
+      doAddMessage(
+        (preState: Array<Message>): Array<Message> => {
+          return [...res, ...preState];
+        }
+      );
+    });
 
+
+    getRecord(window.location.href)
+      .then(res => {
+        console.log('uri', res)
+      })
+  }, []);
+
+
+  
 
   return (
     <div className="App">
-      <table>
-        <thead>
-          <tr>
-            <th>2i</th>
-            <th>2i</th>
-            <th>3i</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>1</td>
-            <td>2</td>
-            <td>3</td>
-          </tr>
-          <tr>
-            <td>1</td>
-            <td>2</td>
-            <td>3</td>
-          </tr>
-          <tr>
-            <td>1</td>
-            <td>2</td>
-            <td>3</td>
-          </tr>
-        </tbody>
-      </table>
-      <p>22222jdhasdadhkadkajh    <span><em>22asa</em></span>   dkhasdadasa</p>
-      <div>adasdakjdajdhakdad<span id="note" className="note">adasdadasdasdada</span>sxxxxakjdkeaodakhda</div>
-
-      <button className="check-func" onClick={doHighLight} >Check</button>
+      <ul>
+        {messages.map((message: Message, index: number) => (
+          <li key={index}>{message.content}</li>
+        ))}
+      </ul>
+      <button onClick={add}>AddMessage</button>
+      <button onClick={record}>AddRecord</button>
     </div>
   );
-}
+};
 
 export default App;

@@ -1,5 +1,6 @@
 'use strict';
 
+// https://github.com/rubenspgcavalcante/webpack-extension-reloader/blob/master/sample/webpack.plugin.js
 const fs = require('fs');
 const isWsl = require('is-wsl');
 const path = require('path');
@@ -26,7 +27,7 @@ const ModuleNotFoundPlugin = require('react-dev-utils/ModuleNotFoundPlugin');
 const ForkTsCheckerWebpackPlugin = require('react-dev-utils/ForkTsCheckerWebpackPlugin');
 const typescriptFormatter = require('react-dev-utils/typescriptFormatter');
 const eslint = require('eslint');
-
+const ExtensionReloaderPlugin  = require('webpack-extension-reloader');
 const postcssNormalize = require('postcss-normalize');
 
 const appPackageJson = require(paths.appPackageJson);
@@ -164,7 +165,8 @@ module.exports = function(webpackEnv) {
     // ].filter(Boolean),
     entry: {
       app: [paths.appIndexJs],
-      content: ['./src/content.tsx']
+      content: ['./src/content.tsx'],
+      background: ['./src/background.ts']
     },
     output: {
       // The build folder.
@@ -499,6 +501,17 @@ module.exports = function(webpackEnv) {
       ],
     },
     plugins: [
+
+      isEnvDevelopment &&
+      new ExtensionReloaderPlugin({
+        entries: { 
+          contentScript: 'content', 
+          background: 'background',
+          // extensionPage: 'popup'
+        }
+        // Also possible to use
+        // manifest: resolve(__dirname, "manifest.json")
+      }),
       // Generates an `index.html` file with the <script> injected.
       new HtmlWebpackPlugin(
         Object.assign(
